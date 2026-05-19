@@ -7,36 +7,57 @@ import entidades.Usuario;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.RoundRectangle2D;
 import java.net.URL;
-import java.util.UUID;
 
 public class PantallaLogin extends JFrame {
 
-    private JTextField txtEmail;
+    // ── Paleta ────────────────────────────────────────────────────────────────
+    private static final Color BG_DARK      = new Color(10, 14, 23);
+    private static final Color BG_CARD      = new Color(18, 24, 38);
+    private static final Color ACCENT_CYAN  = new Color(0, 212, 255);
+    private static final Color TEXT_PRIMARY = new Color(240, 244, 255);
+    private static final Color TEXT_MUTED   = new Color(120, 140, 170);
+    private static final Color BORDER_COLOR = new Color(30, 42, 62);
+    private static final Color INPUT_BG     = new Color(24, 32, 50);
+
+    private JTextField    txtEmail;
     private JPasswordField txtPass;
-    private UsuarioDAO usuarioDAO;
+    private UsuarioDAO    usuarioDAO;
 
     public PantallaLogin() {
         this.usuarioDAO = new UsuarioDAOSQLite();
 
         setTitle("Pistalia - Acceso");
-        setSize(420, 620); // Aumentado ligeramente para mejorar el diseño
+        setSize(430, 580);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
 
-        JPanel panel = new JPanel();
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(BG_DARK);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                GradientPaint gp = new GradientPaint(
+                        getWidth(), 0, new Color(0, 212, 255, 25),
+                        0, getHeight(), new Color(0, 0, 0, 0)
+                );
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(30, 40, 30, 40));
+        panel.setBorder(new EmptyBorder(40, 45, 35, 45));
 
-        // --- CABECERA DE LOGO Y TITULO (Corregido) ---
-        // Usamos FlowLayout para poner logo y texto uno al lado del otrocentrados
-        JPanel pnlHeader = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
-        pnlHeader.setBackground(Color.WHITE);
+        // ── Cabecera ───────────────────────────────────────────────────────────
+        JPanel pnlHeader = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
+        pnlHeader.setOpaque(false);
         pnlHeader.setAlignmentX(Component.CENTER_ALIGNMENT);
-        // Limitamos la altura máxima de la cabecera
-        pnlHeader.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         JLabel lblLogoImg = new JLabel();
         try {
@@ -44,146 +65,227 @@ public class PantallaLogin extends JFrame {
             if (imgURL != null) {
                 ImageIcon icon = new ImageIcon(imgURL);
                 Image img = icon.getImage();
-
-                // LÓGICA DE ESCALADO PROPORCIONAL
-                int origW = img.getWidth(null);
-                int origH = img.getHeight(null);
-                int targetH = 80; // Altura deseada para la cabecera
-                int targetW = (origW * targetH) / origH; // Calculamos ancho proporcional
-
-                Image scaled = img.getScaledInstance(targetW, targetH, Image.SCALE_SMOOTH);
-                lblLogoImg.setIcon(new ImageIcon(scaled));
+                int origW = img.getWidth(null), origH = img.getHeight(null);
+                int tH = 68, tW = (origW * tH) / origH;
+                lblLogoImg.setIcon(new ImageIcon(img.getScaledInstance(tW, tH, Image.SCALE_SMOOTH)));
             }
-        } catch (Exception ex) {
-            // Si falla, no mostramos nada o un icono por defecto
-        }
+        } catch (Exception ignored) {}
         pnlHeader.add(lblLogoImg);
 
-        JLabel lblTitleText = new JLabel("PISTALIA");
-        lblTitleText.setFont(new Font("Segoe UI", Font.BOLD, 36));
-        lblTitleText.setForeground(new Color(44, 62, 80)); // Un tono gris azulado elegante
-        pnlHeader.add(lblTitleText);
+        JLabel lblTitle = new JLabel("PISTALIA");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 34));
+        lblTitle.setForeground(TEXT_PRIMARY);
+        pnlHeader.add(lblTitle);
 
+        JLabel lblSub = new JLabel("Bienvenido de vuelta");
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblSub.setForeground(TEXT_MUTED);
+        lblSub.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        txtEmail = new JTextField();
-        txtEmail.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35)); // Ligeramente más alto
-        txtPass = new JPasswordField();
-        txtPass.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+        // ── Campos ─────────────────────────────────────────────────────────────
+        txtEmail = crearCampoTexto("correo@ejemplo.com", false);
+        txtPass  = (JPasswordField) crearCampoTexto("••••••••", true);
 
-        JButton btnEntrar = new JButton("Iniciar Sesión");
-        btnEntrar.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnEntrar.setBackground(new Color(52, 152, 219));
-        btnEntrar.setForeground(Color.WHITE);
-        btnEntrar.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        // Botón más grande
-        btnEntrar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        JLabel lblEmail = crearEtiqueta("Correo electrónico");
+        JLabel lblPass  = crearEtiqueta("Contraseña");
 
-        JButton btnRegistro = new JButton("¿No tienes cuenta? Regístrate");
-        btnRegistro.setAlignmentX(Component.CENTER_ALIGNMENT);
-        estilizarBotonLink(btnRegistro);
+        // ── Botones ────────────────────────────────────────────────────────────
+        JButton btnEntrar   = PantallaInicio.crearBotonEstilizado("Iniciar Sesión", ACCENT_CYAN);
+        JButton btnRegistro = crearBotonLink("¿No tienes cuenta? Regístrate");
+        JButton btnOlvido   = crearBotonLink("¿Olvidaste tu contraseña?");
 
-        JButton btnOlvido = new JButton("¿Has olvidado tu contraseña?");
-        btnOlvido.setAlignmentX(Component.CENTER_ALIGNMENT);
-        estilizarBotonLink(btnOlvido);
-
-        // Lógica de botones
         btnEntrar.addActionListener(e -> login());
+        txtPass.addKeyListener(new KeyAdapter() {
+            @Override public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) login();
+            }
+        });
         btnRegistro.addActionListener(e -> abrirDialogoRegistro());
         btnOlvido.addActionListener(e -> recuperarContrasena());
 
-        // Añadimos componentes al panel principal
+        // ── Ensamblaje ─────────────────────────────────────────────────────────
         panel.add(pnlHeader);
-        panel.add(Box.createVerticalStrut(30));
-
-        // Estilizamos etiquetas de campo
-        JLabel lblEmail = new JLabel("Email de usuario:");
-        lblEmail.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblEmail.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(Box.createVerticalStrut(8));
+        panel.add(lblSub);
+        panel.add(Box.createVerticalStrut(35));
         panel.add(lblEmail);
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalStrut(6));
         panel.add(txtEmail);
-
-        panel.add(Box.createVerticalStrut(15));
-
-        JLabel lblPass = new JLabel("Contraseña:");
-        lblPass.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblPass.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(Box.createVerticalStrut(18));
         panel.add(lblPass);
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalStrut(6));
         panel.add(txtPass);
-
-        panel.add(Box.createVerticalStrut(30));
+        panel.add(Box.createVerticalStrut(28));
         panel.add(btnEntrar);
-        panel.add(Box.createVerticalStrut(20));
+        panel.add(Box.createVerticalStrut(22));
+
+        JSeparator sep = crearSeparador();
+        panel.add(sep);
+        panel.add(Box.createVerticalStrut(14));
         panel.add(btnRegistro);
+        panel.add(Box.createVerticalStrut(4));
         panel.add(btnOlvido);
 
-        add(panel);
+        setContentPane(panel);
     }
+
+    // ── Helpers de UI ─────────────────────────────────────────────────────────
+
+    private JLabel crearEtiqueta(String texto) {
+        JLabel lbl = new JLabel(texto);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lbl.setForeground(TEXT_MUTED);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return lbl;
+    }
+
+    private JTextField crearCampoTexto(String placeholder, boolean esPassword) {
+        JTextField campo = esPassword ? new JPasswordField() : new JTextField();
+        campo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        campo.setPreferredSize(new Dimension(340, 42));
+        campo.setBackground(INPUT_BG);
+        campo.setForeground(TEXT_PRIMARY);
+        campo.setCaretColor(ACCENT_CYAN);
+        campo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        campo.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1, true),
+                new EmptyBorder(8, 14, 8, 14)
+        ));
+        // Placeholder
+        if (!esPassword) {
+            campo.setForeground(TEXT_MUTED);
+            campo.setText(placeholder);
+            campo.addFocusListener(new FocusAdapter() {
+                public void focusGained(FocusEvent e) {
+                    if (campo.getText().equals(placeholder)) {
+                        campo.setText("");
+                        campo.setForeground(TEXT_PRIMARY);
+                    }
+                }
+                public void focusLost(FocusEvent e) {
+                    if (campo.getText().isEmpty()) {
+                        campo.setForeground(TEXT_MUTED);
+                        campo.setText(placeholder);
+                    }
+                }
+            });
+        }
+        // Borde de foco
+        campo.addFocusListener(new FocusAdapter() {
+            public void focusGained(FocusEvent e) {
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(ACCENT_CYAN, 1, true),
+                        new EmptyBorder(8, 14, 8, 14)
+                ));
+            }
+            public void focusLost(FocusEvent e) {
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(BORDER_COLOR, 1, true),
+                        new EmptyBorder(8, 14, 8, 14)
+                ));
+            }
+        });
+        return campo;
+    }
+
+    private JButton crearBotonLink(String texto) {
+        JButton btn = new JButton(texto);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setForeground(new Color(0, 180, 220));
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { btn.setForeground(ACCENT_CYAN); }
+            public void mouseExited(MouseEvent e)  { btn.setForeground(new Color(0, 180, 220)); }
+        });
+        return btn;
+    }
+
+    private JSeparator crearSeparador() {
+        JSeparator sep = new JSeparator() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                GradientPaint gp = new GradientPaint(0, 0, new Color(0,0,0,0),
+                        getWidth()/2f, 0, BORDER_COLOR, true);
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        return sep;
+    }
+
+    // ── Lógica (sin cambios) ───────────────────────────────────────────────────
 
     private void login() {
         String email = txtEmail.getText().trim();
-        String pass = new String(txtPass.getPassword());
+        String pass  = new String(txtPass.getPassword());
 
-        if(email.isEmpty() || pass.isEmpty()){
-            JOptionPane.showMessageDialog(this, "Rellena todos los campos");
+        if (email.isEmpty() || pass.isEmpty()) {
+            mostrarError("Rellena todos los campos");
             return;
         }
-
         Usuario u = usuarioDAO.login(email, pass);
         if (u != null) {
             new PantallaPrincipal(u).setVisible(true);
             dispose();
         } else {
-            JOptionPane.showMessageDialog(this, "Email o contraseña incorrectos", "Error", JOptionPane.ERROR_MESSAGE);
+            mostrarError("Email o contraseña incorrectos");
         }
+    }
+
+    private void mostrarError(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
     private void recuperarContrasena() {
         String email = JOptionPane.showInputDialog(this,
                 "Introduce el email con el que te registraste:",
-                "Recuperar Contraseña",
-                JOptionPane.QUESTION_MESSAGE);
-
+                "Recuperar Contraseña", JOptionPane.QUESTION_MESSAGE);
         if (email != null && !email.trim().isEmpty()) {
             Usuario u = usuarioDAO.buscarPorEmail(email.trim());
-
             if (u != null) {
                 JOptionPane.showMessageDialog(this,
-                        "¡Usuario localizado!\n\n" +
-                                "Se ha enviado un código de seguridad a: " + email + "\n" +
-                                "(Simulación: Tu contraseña actual es: " + u.getPassword() + ")",
-                        "Recuperación Exitosa",
-                        JOptionPane.INFORMATION_MESSAGE);
+                        "¡Usuario localizado!\n\nSe ha enviado un código de seguridad a: " + email +
+                                "\n(Simulación: Tu contraseña actual es: " + u.getPassword() + ")",
+                        "Recuperación Exitosa", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(this,
                         "No existe ningún usuario registrado con ese email.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
     private void abrirDialogoRegistro() {
         JDialog dialogo = new JDialog(this, "Crear Cuenta", true);
-        dialogo.setLayout(new GridLayout(0, 1, 10, 10));
-        dialogo.setSize(350, 400);
+        dialogo.setSize(360, 380);
         dialogo.setLocationRelativeTo(this);
-        ((JPanel)dialogo.getContentPane()).setBorder(new EmptyBorder(20,20,20,20));
 
-        JTextField regUser = new JTextField();
-        JTextField regEmail = new JTextField();
-        JPasswordField regPass = new JPasswordField();
-        JButton btnConfirmar = new JButton("Registrarme");
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(BG_CARD);
+        p.setBorder(new EmptyBorder(25, 30, 25, 30));
 
-        dialogo.add(new JLabel("Nombre Completo:"));
-        dialogo.add(regUser);
-        dialogo.add(new JLabel("Email:"));
-        dialogo.add(regEmail);
-        dialogo.add(new JLabel("Contraseña:"));
-        dialogo.add(regPass);
-        dialogo.add(new JLabel(""));
-        dialogo.add(btnConfirmar);
+        JTextField regUser  = crearCampoTexto("", false);
+        JTextField regEmail = crearCampoTexto("", false);
+        JPasswordField regPass = (JPasswordField) crearCampoTexto("", true);
+
+        JButton btnConfirmar = PantallaInicio.crearBotonEstilizado("Registrarme", ACCENT_CYAN);
+        btnConfirmar.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        p.add(crearEtiqueta("Nombre Completo")); p.add(Box.createVerticalStrut(5)); p.add(regUser);
+        p.add(Box.createVerticalStrut(14));
+        p.add(crearEtiqueta("Email"));           p.add(Box.createVerticalStrut(5)); p.add(regEmail);
+        p.add(Box.createVerticalStrut(14));
+        p.add(crearEtiqueta("Contraseña"));      p.add(Box.createVerticalStrut(5)); p.add(regPass);
+        p.add(Box.createVerticalStrut(24));
+        p.add(btnConfirmar);
+
+        dialogo.setContentPane(p);
 
         btnConfirmar.addActionListener(e -> {
             String email = regEmail.getText().trim();
@@ -191,13 +293,11 @@ public class PantallaLogin extends JFrame {
                 JOptionPane.showMessageDialog(dialogo, "Formato de email no válido.");
                 return;
             }
-
             Usuario nuevo = new Usuario();
             nuevo.setNombre(regUser.getText().trim());
             nuevo.setEmail(email);
             nuevo.setPassword(new String(regPass.getPassword()));
             nuevo.setEsAdmin(false);
-
             if (usuarioDAO.registrar(nuevo)) {
                 JOptionPane.showMessageDialog(dialogo, "¡Cuenta creada correctamente!");
                 dialogo.dispose();
@@ -207,14 +307,6 @@ public class PantallaLogin extends JFrame {
         });
 
         dialogo.setVisible(true);
-    }
-
-    private void estilizarBotonLink(JButton btn) {
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setForeground(new Color(41, 128, 185));
-        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
     public static void main(String[] args) {

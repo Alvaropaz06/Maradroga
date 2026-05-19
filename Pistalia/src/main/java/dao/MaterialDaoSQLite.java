@@ -6,7 +6,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MaterialDaoSQLite implements MaterialDAO {
+public class MaterialDaoSQlite implements MaterialDAO {
 
     @Override
     public List<Material> obtenerPorDeporte(String deporte) {
