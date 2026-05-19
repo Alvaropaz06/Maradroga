@@ -9,6 +9,5 @@ Aplicación web para reservar pistas deportivas, gestionar pagos y administrar i
 La documentación del proyecto se encuentra en la carpeta `/docs`.
 
 ## 👥 Equipo
-- Eduard Gabriel Udrea
 - Alvaro Paz Rivera
 - Pablo Pozo Campanario
