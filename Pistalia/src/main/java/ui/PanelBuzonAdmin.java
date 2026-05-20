@@ -69,6 +69,12 @@ public class PanelBuzonAdmin extends JPanel {
         boolean respondido = m.getRespuesta() != null && !m.getRespuesta().isEmpty();
 
         JPanel fila = new JPanel() {
+            // Esto evita que la tarjeta se estire infinitamente hacia abajo
+            @Override
+            public Dimension getMaximumSize() {
+                return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+            }
+
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -82,7 +88,6 @@ public class PanelBuzonAdmin extends JPanel {
         fila.setLayout(new BorderLayout());
         fila.setOpaque(false);
         fila.setBorder(new EmptyBorder(15, 20, 15, 20));
-        fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
         JPanel pnlCentro = new JPanel();
         pnlCentro.setLayout(new BoxLayout(pnlCentro, BoxLayout.Y_AXIS));
@@ -99,24 +104,28 @@ public class PanelBuzonAdmin extends JPanel {
         pnlCentro.add(Box.createVerticalStrut(5));
         pnlCentro.add(lblMsg);
 
-        JPanel pnlDerecha = new JPanel(new BorderLayout());
+        // Usamos FlowLayout aquí para que el botón naranja no se estire y se vea gigante
+        JPanel pnlDerecha = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         pnlDerecha.setOpaque(false);
 
         if (respondido) {
             JLabel badge = new JLabel("✓ Respondido");
             badge.setForeground(ACCENT_GREEN);
             badge.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            pnlDerecha.add(badge, BorderLayout.CENTER);
+            pnlDerecha.add(badge);
 
-            JLabel respAbajo = new JLabel("<html><p style='color: #00e676;'>Tú: " + m.getRespuesta() + "</p></html>");
+            // CORRECCIÓN: Cambiamos "Tú:" por "Admin:"
+            JLabel respAbajo = new JLabel("<html><p style='color: #00e676;'>Admin: " + m.getRespuesta() + "</p></html>");
             pnlCentro.add(Box.createVerticalStrut(8));
             pnlCentro.add(respAbajo);
         } else {
             JButton btnResponder = new JButton("Responder") {{
                 setBackground(new Color(255, 165, 60));
                 setForeground(new Color(10, 14, 23));
+                setFont(new Font("Segoe UI", Font.BOLD, 12));
                 setFocusPainted(false); setBorderPainted(false);
                 setCursor(new Cursor(Cursor.HAND_CURSOR));
+                setPreferredSize(new Dimension(100, 32)); // Obligamos a que el botón tenga un tamaño bonito
             }};
             btnResponder.addActionListener(e -> {
                 String resp = JOptionPane.showInputDialog(this, "Escribe tu respuesta para " + m.getNombreUsuario() + ":");
@@ -126,7 +135,7 @@ public class PanelBuzonAdmin extends JPanel {
                     }
                 }
             });
-            pnlDerecha.add(btnResponder, BorderLayout.CENTER);
+            pnlDerecha.add(btnResponder);
         }
 
         fila.add(pnlCentro, BorderLayout.CENTER);
